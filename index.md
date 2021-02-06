@@ -11,15 +11,14 @@ title : ""
 
 Hi, my name is Katja Hauser. 
 
-I am a PhD student in computer science at [Visual Learning Lab](https://hci.iwr.uni-heidelberg.de/vislearn/) at [Heidelberg University](https://www.uni-heidelberg.de/en). 
+I finished my master's thesis in Applied Computer Science at [Visual Learning Lab](https://hci.iwr.uni-heidelberg.de/vislearn/) ([Heidelberg University](https://www.uni-heidelberg.de/en)) in December 2019. 
 
-Currently, I am working on RNA basecalling with a focus on the identification of modified bases. 
+Currently, I am working as independent researcher. I am interested in understanding the structures that arise in neural networks during training. Specifically, I want to study the networks uncovered by the [Lottery Ticket Hypothesis](https://arxiv.org/abs/1803.03635) with topological methods. 
 
-I am interested in: 
- + invertible neural networks 
- + the [Lottery Ticket Hypothesis](https://arxiv.org/abs/1803.03635) and follow-up work
- + uncertainty quantification
+I have previously worked with: 
+ + invertible normalizing flows, specifically the [Invertible Neural Network](https://arxiv.org/abs/1808.04730) (INN) 
+ + ensembles and ensemble based uncertainty quantification (specifically [Deep Ensemble](https://arxiv.org/abs/1612.01474))
 
-My CV can be found [here](/assets/2020-07_CV_internet.pdf). 
+My CV can be found [here](/assets/2021-02_CV.pdf). 
 
-You can find me on [github](https://github.com/katjahauser/). I have a [Twitter account](https://twitter.com/katjahauser) on which you will find tweets about my work, papers and articles I find interesting and some occasional joke.
+You can find me on [github](https://github.com/katjahauser/). I also have a [Twitter account](https://twitter.com/katjahauser), if you like to follow me there. I post notifications about my work there and occasionally retweet articles I find interesting or make some joke. 
