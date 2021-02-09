@@ -1,0 +1,340 @@
+---
+layout: post
+title: Installing CUDA 10.0 on Ubuntu 18.04.5
+---
+
+I recently had to install CUDA 10.0 on Ubuntu 18.04.5. Since it was a bit of a pain, I decided to write a guide. Have fun and save your data before you do this. 
+
+I worked with a clean installation directly on my machine (i.e., no virtual machine) with Ubuntu 18.04.5 as the only OS. Depending on your installation mode (virtual machine, dual boot, etc.) you may have to slightly tweak this guide.  
+Please drop me a note, if this guide worked for another mode of installation, too, so I can mention it. 
+
+A brief note on notation: The necessary steps will be contained in an enumerated list, the paragraphs mostly give the reasons for the way I chose to do this.
+
+## Make sure to avoid data loss
+
+In figuring this out, I had to reinstall Ubuntu several times, among else because my mouse and keyboard were not responding after rebooting after installing CUDA at one point. Therefore, I **strongly recommend you do a backup of all important data before starting**.
+
+I wrote this tutorial with to the best of my knowledge, but **I do not take any responsibility for any data loss or other damages that occured due to this tutorial.**
+
+1. Take necessary precautions w.r.t. data loss.
+
+
+## Install Ubuntu 18.04.5
+
+1. Obtain a [bootable USB-stick](https://ubuntu.com/tutorials/create-a-usb-stick-on-ubuntu#1-overview) or a similar medium with Ubuntu 18.04.5
+
+2. During installation choose **not** to install third-party software, since this includes Nvidia-drivers (V. 450) which that are not the version that is required by CUDA 10.0 (V. 410).
+
+3. Install all available updates during and after finishing installation.
+
+
+### Fix missing firmware
+
+I had to install two missing firmware files for the CUDA installation to work. Please check whether the files ``/lib/firmware/rtl_nic/rtl8125a-3.fw`` and ``/lib/firmware/rtl_nic/rtl8168fp-3.fw`` exist. (They may, if you upgraded from an older version, but should not, if you did a fresh install.) If they are missing, I suggest following comment #3 [here](https://bugs.launchpad.net/ubuntu/+source/linux-firmware/+bug/1890641), which solved the issue for me: 
+
+1. Download the missing firmware from [git](https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/tree/rtl_nic).
+
+2. ``sudo update-initramfs -u``
+
+3. Reboot to reload the kernel.
+
+
+### Install xserver-xorg-core
+
+According to comment #24 by *kopkop* [here](https://forums.developer.nvidia.com/t/unable-to-properly-install-uninstall-cuda-on-ubuntu-18-04/60807): 
+
+> "the package xserver-xorg-video-nvidia-418_418.39-0ubuntu1_amd64.deb requires “xserver-xorg-core”, but the actual package installed natively on Ubuntu 18.04.2 is named “xserver-xorg-core-hwe-18.04”. If you choose to install “xserver-xorg-core” manually, it will uninstall gnome-desktop if you are using desktop edition which is not acceptable." 
+
+In our case, the problem package will be ``xserver-xorg-video-nvidia-410``, but the issue is otherwise the same. I did not follow *kopkop*'s suggested solution, though, but simply installed ``xserver-xorg-core`` and then manually reinstalled ``ubuntu-desktop``. Do **not** reboot until after ``ubuntu-desktop`` is installed ;) 
+
+This problem only seems to occur on freshly installed Ubuntu 18.04.X, but not for versions that were upgraded, say from 18.04.1 to 18.04.2. (compare comment #23 by *kriegalex* in the linked thread above).
+
+1. Install ``xserver-xorg-core``: ``sudo apt-get install xserver-xorg-core``  
+
+    You will see something like this:  
+    ``$ sudo apt-get install xserver-xorg-core``  
+    ``[...]``  
+    ``The following packages will be REMOVED:``  
+    ``ubuntu-desktop [...]``  
+
+    **Do not reboot at this point!**
+
+2. Reinstall ``ubuntu-desktop`` -- simply ``sudo apt-get install ubuntu-desktop``  
+    This does not remove ``xserver-xorg-core``.
+
+3. Now reboot. 
+
+
+### Revert the kernel to version 4.15.0 
+
+CUDA 10.0 requires kernel version ``4.15.0``. I tried to install it with ``5.4.62`` (the newest at the time of writing) and ``5.4.60`` initially, but the system always failed to detect the NVIDIA drivers after installation. I eventually reverted to kernel version ``4.15.0`` therefore, which worked.  
+I suspect that a newer 4.X kernel could also work, but I did not try it. Drop me a note, if you did. 
+
+We will install the old kernel, boot into it, remove the newer kernels (to be sure) and then set ``4.15.0`` as default for booting. 
+
+1. Install kernel version ``4.15.0`` by running
+
+    1. ``sudo apt-get install linux-generic``
+
+
+2. We want to access ``grub`` to boot into the older kernel. If you can already access grub during booting, you can skip ahead to 3. I am loosely following the top-comment [here](https://askubuntu.com/questions/82140/how-can-i-boot-with-an-older-kernel-version):
+
+    1. ``sudo gedit /etc/default/grub``
+
+    2. comment out ``GRUB_TIMEOUT_STYLE=hidden`` and set ``GRUB_TIMEOUT`` to a convenient number of seconds (e.g., 5) or to -1 to avoid automatic booting.
+
+    3. save and exit
+
+    4. ``sudo update-grub``
+
+
+3. Reboot into kernel ``4.15.0`` and remove the newer kernels:
+
+    1. Reboot and take note which kernels aside from ``4.15.0.`` are present in the grub menu. We will remove them.
+
+    2. Boot into ``4.15.0`` (in "Advanced options for Ubuntu"). 
+
+    3. I am not sure, whether it is *strictly* necessary to remove the newer kernels, I just did it to be sure. (If installing CUDA with the newer kernels present worked for you, drop me a note.)  
+    ``sudo apt remove linux-image-5.4.0.62-generic* linux-headers-5.4.0.62-generic* linux-image-5.4.0.42-generic* linux-headers-5.4.0.42-generic*``
+
+
+4. Set ``4.15.0`` as default in ``grub``. You can do this either by indicating the desired number in ``GRUB_DEFAULT`` (attention: the counter starts from 0) or by indicating the exact name, which is more robust. I will do the latter.  
+I am loosely following the anser of *flaysomerages* [here](https://unix.stackexchange.com/questions/465201/how-do-i-roll-back-to-a-previous-ubuntu-kernel-running-ubuntu-16-04) and [this comment](https://askubuntu.com/questions/100232/how-do-i-change-the-grub-boot-order/110738#110738).  
+(This step may reintroduce entries in the grub menu for the other kernels. I found it not to be an issue as long as the default is set correctly.)
+
+    1. Grub 2.02 is installed on Ubuntu 18.04.5 by default. Please verify by running ``grub-install --version``. (If your version is **below 2.00** you have to enter something like "Advanced options for Ubuntu>Ubuntu, with Linux 4.15.0-132-generic" below.)
+
+    2. get the corresponding identifier(s) from ``grub.cfg``:  
+    ``sudo view /boot/grub/grub.cfg``
+    You want the identifiers corresponding to the entries "Advanced options for Ubuntu" and "Ubuntu, with Linux 4.15.0-132-generic"
+
+    3. Set them accordingly in ``/etc/default/grub``:
+    ``sudo gedit /etc/default/grub``  
+    For me it was  
+    ``GRUB_DEFAULT="gnulinux-advanced-f88b7f87-95fa-4373-ba9f-a363ef3c147a>gnulinux-4.15.0-132-generic-advanced-f88b7f87-95fa-4373-ba9f-a363ef3c147a"``
+
+    4. (optional) revert the changes to ``/etc/default/grub`` made in 2.2., i.e. comment in ``GRUB_TIMEOUT_STYLE=hidden`` and set ``GRUB_TIMEOUT=0``
+
+    5. save and exit
+
+    6. ``sudo update-grub``
+
+
+5. (optional) You can check that this has worked by running ``uname -r``
+
+
+## Install CUDA 10.0
+
+Now, we can finally install CUDA 10.0.  
+I will walk you through the package manager installation, closely following the steps in the [official CUDA 10.0 guide](https://docs.nvidia.com/cuda/archive/10.0/). I use their titles and numbering for reference and copy the relevant commands, so you can stay on one webpage, if you so wish.   
+I marked the steps you can skip, if you followed this guide with *(skip)*.
+
+**However, I strongly advice that you also look into the official guide since I will focus on what is relevant for this setup only, i.e., I will be skipping explanaitions and some post-installation steps.**
+
+Also, if you **run into any other issues**, have a look into [the release notes](https://docs.nvidia.com/cuda/archive/10.0/cuda-toolkit-release-notes/).
+
+
+### Preinstallation actions
+
+* 2.1. Verify You Have a CUDA-Capable GPU
+
+    ``lspci | grep -i nvidia``  
+    This should give you something like this:  
+    ``06:00.0 VGA compatible controller: NVIDIA Corporation GP102 [GeForce GTX 1080 Ti] (rev a1)``
+    ``06:00.1 Audio device: NVIDIA Corporation GP102 HDMI Audio Controller (rev a1)``
+
+* *(skip)* 2.2. Verify You Have a Supported Version of Linux 
+
+    ``uname -m && cat /etc/*release``  
+    Since you should have the same setup as I have, you should see:  
+    ``x86_64``  
+    ``DISTRIB_ID=Ubuntu``  
+    ``DISTRIB_RELEASE=18.04``  
+    ``DISTRIB_CODENAME=bionic``  
+    ``DISTRIB_DESCRIPTION="Ubuntu 18.04.5 LTS"``  
+    ``NAME="Ubuntu"``  
+    ``VERSION="18.04.5 LTS (Bionic Beaver)"``  
+    ``ID=ubuntu``  
+    ``ID_LIKE=debian``  
+    ``PRETTY_NAME="Ubuntu 18.04.5 LTS"``  
+    ``VERSION_ID="18.04"``  
+    ``HOME_URL="https://www.ubuntu.com/"``  
+    ``SUPPORT_URL="https://help.ubuntu.com/"``  
+    ``BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"``  
+    ``PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"``  
+    ``VERSION_CODENAME=bionic``  
+    ``UBUNTU_CODENAME=bionic``
+
+
+* 2.3. Verify the System Has ``gcc`` Installed  
+    ``gcc`` is not installed by default, so we have to install it.  
+    You can simply install the package ``build-essential`` (it will be installed later, anyway.) or you can install ``gcc`` directly:  
+    ``sudo apt install gcc``
+
+    With ``gcc --version`` you should now get:  
+    ``gcc (Ubuntu 7.5.0-3ubuntu1~18.04) 7.5.0``  
+    ``Copyright (C) 2017 Free Software Foundation, Inc.``  
+    ``This is free software; see the source for copying conditions.  There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.``
+
+    In the official CUDA guide it is indicated that ``gcc 7.3.0`` is required (see Table 1), but ``7.5.0`` worked fine for me, as well.  
+
+
+* *(skip)* 2.4. Verify the System has the Correct Kernel Headers and Development Packages Installed
+
+    ``uname -r``  
+    Should give you  
+    ``4.15.0-132-generic``.
+
+    If it did not, but you installed kernel version ``4.15.0`` in the previous step, make sure you booted the correct kernel.
+
+    ``sudo apt-get install linux-headers-$(uname -r)``
+
+    You should not need to install anything since we just got the headers by installing ``linux-generic``.
+
+
+* 2.5. Choose an Installation Method
+
+    I'll walk you through the package manager installation. There. Choosing done ;P
+
+
+* 2.6. Download the NVIDIA CUDA Toolkit
+
+    1. Download the Toolkit and the patch from [the official archive](https://developer.nvidia.com/cuda-10.0-download-archive). Click through the options, we need the local ``.deb``.
+
+    2. Verify the files. The checksums can be found [here](https://developer.download.nvidia.com/compute/cuda/10.0/Prod/docs/sidebar/md5sum.txt)
+
+    ``md5sum cuda-repo-ubuntu1804-10-0-local-10.0.130-410.48_1.0-1_amd64.deb``  
+    ``md5sum cuda-repo-ubuntu1804-10-0-local-nvjpeg-update-1_1.0-1_amd64.deb``
+
+
+* *(skip)* 2.7. Handle Conflicting Installation Methods
+
+    Skipped since there is no CUDA on a clean install.
+
+
+### Installation
+
+* 3.6.2. Install repository meta-data. (The public key is installed in the next step.)
+
+    ``sudo dpkg -i cuda-repo-ubuntu1804-10-0-local-10.0.130-410.48_1.0-1_amd64.deb``  
+    ``sudo dpkg -i cuda-repo-ubuntu1804-10-0-local-nvjpeg-update-1_1.0-1_amd64.deb``
+
+
+* 3.6.3. Installing the CUDA public GPG key
+
+    ``sudo apt-key add /var/cuda-repo-10-0-local-10.0.130-410.48/7fa2af80.pub``
+
+
+* 3.6.4. Update the Apt repository cache
+
+    ``sudo apt-get update``
+
+
+* 3.6.5. Install CUDA
+
+    ``sudo apt-get install cuda``  
+    The patch will be installed automatically.
+
+
+### Postinstallation actions 
+
+* 7.1.1. Environment Setup
+
+    Add the path to CUDA to the ``PATH`` variable.  
+    Citing *Saurabh*'s answer in [this thread](https://askubuntu.com/questions/953975/problem-installing-cuda-8-on-ubuntu-16-04-missing-proc-driver-nvidia-folder): 
+
+    > For permanently setting the path:  
+    > $ gedit ~/.bashrc  
+    > the file will load. In that file go to bottom and paste this::  
+
+    (We have to use **10.0 instead of 8.0** in the next step.)
+    > export PATH=/usr/local/cuda-8.0/bin:$PATH  
+    > save and close.  
+
+
+#### Recommended actions
+
+* 7.2.1. Install Persistence Daemon
+
+    Reboot, if you have not done so, before.
+
+    The command suggested in the CUDA guide did not work for me. I instead followed the suggestion by *andorjkiss* [here](https://forums.developer.nvidia.com/t/nvidia-persistenced-failed-to-initialize-check-syslog-for-more-details/74052/5). (This needs to be run as root user, ``sudo`` alone does not work.) 
+
+    ``$ sudo -i ``  
+    ``# nvidia-smi -pm 1``  
+    ``Enabled persistence mode for GPU 00000000:06:00.0.``  
+    ``All done.``  
+    ``# exit``
+
+    You should not experience any issues with ``nvidia-smi``, if you followed my guide. 
+    Check if the persistencing worked with
+
+    ``systemctl status nvidia-persistenced.service``
+
+    you should see something like this:
+
+    ``● nvidia-persistenced.service - NVIDIA Persistence Daemon``  
+    ``   Loaded: loaded (/lib/systemd/system/nvidia-persistenced.service; static; vendor``  
+    ``   Active: active (running) since Sun 2021-01-17 11:34:52 CET; 12min ago``  
+    ``  Process: 1092 ExecStart=/usr/bin/nvidia-persistenced --user root --no-persistenc``  
+    `` Main PID: 1093 (nvidia-persiste)``  
+    ``    Tasks: 1 (limit: 4915)``  
+    ``   CGroup: /system.slice/nvidia-persistenced.service``  
+    ``           └─1093 /usr/bin/nvidia-persistenced --user root --no-persistence-mode -``  
+
+
+* 7.2.2. Install Writable Samples
+
+    ``/usr/local/cuda-10.0/bin/cuda-install-samples-10.0.sh <dir>``
+
+    According to the CUDA guide (see Section 7.2.2.) you can also install the package ``cuda-samples-10-0``, which will create a read-only copy of the samples in ``/usr/local/cuda-10.0/samples``. I did not try it, but wanted to mention it for the sake of completeness. 
+
+
+* 7.2.3. Verify the Installation
+
+    (I strongly recommend doing this to be on the safe side.)
+
+    * 7.2.3.1. Verify the Driver Version
+
+        ``cat /proc/driver/nvidia/version``
+
+        You should get 
+
+        ``NVRM version: NVIDIA UNIX x86_64 Kernel Module  410.48  Thu Sep  6 06:36:33 CDT 2018``  
+        ``GCC version:  gcc version 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04) ``
+
+    * 7.2.3.2. Compiling the Examples
+
+        1. The CUDA toolkit should not be installed, yet. You can check with 
+
+            ``nvcc -V``
+
+            and install it with
+
+            ``sudo apt install nvidia-cuda-toolkit``
+
+            Now, ``nvcc -V`` should give you
+
+            ``nvcc: NVIDIA (R) Cuda compiler driver``  
+            ``Copyright (c) 2005-2017 NVIDIA Corporation``  
+            ``Built on Fri_Nov__3_21:07:56_CDT_2017``  
+            ``Cuda compilation tools, release 9.1, V9.1.85``
+
+        2. Move to ``<dir>/NVIDIA_CUDA-10.0_Samples`` and 
+
+            ``make``
+
+            **This step took roughly 15min on my setup.** 
+
+        3. Afterwards run  
+            ``<dir>/NVIDIA_CUDA-10.0_Samples/bin/x86_64/linux/release/deviceQuery``
+
+            Check that the device was found (and that it actually is the one on your system -- top of the block) and that the tests passed (last line). 
+
+        4. and run 
+
+            ``<dir>/NVIDIA_CUDA-10.0_Samples/bin/x86_64/linux/release/bandwidthTest``
+
+            Again, the main point is that the tests passed (bottom of the entry).
+
+And there you go, CUDA 10.0 is now installed on your Ubuntu 18.04.5.
