@@ -6,7 +6,8 @@ layout: page
 title : "Welcome to my website!"
 ---
 
-![](/assets/ava_cropped.jpg){: style="float: right"}
+![](/assets/ava_cropped.jpg){:style="float: right" width="40%" margin="50px 50px 50px 50px"}
+
 
 Hi, my name is Katja Hauser. 
 
