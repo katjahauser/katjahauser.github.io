@@ -6,7 +6,7 @@ layout: page
 title : "Welcome to my website!"
 ---
 
-![](/assets/ava_cropped.jpg){:style="float: right" width="40%" margin="50px 50px 50px 50px"}
+![](/assets/ava_cropped_2.png){:style="float: right" width="40%" margin="50px 50px 50px 50px"}
 
 
 Hi, my name is Katja Hauser. 
@@ -19,9 +19,9 @@ I have previously worked with:
  + invertible normalizing flows, specifically the [Invertible Neural Network](https://arxiv.org/abs/1808.04730) (INN) 
  + ensembles and ensemble based uncertainty quantification (specifically [Deep Ensemble](https://arxiv.org/abs/1612.01474))
 
-My CV can be found [here](/assets/2021-02_CV.pdf). 
+My CV can be found [here](/assets/2021_07_CV.pdf). 
 
-You can find me on [github](https://github.com/katjahauser/). I also have a [Twitter account](https://twitter.com/katjahauser), if you like to follow me there. I post notifications about my work and occasionally retweet articles I find interesting or make some joke. 
+You can find me on [github](https://github.com/katjahauser/). I also have a [Twitter account](https://twitter.com/katjahauser), if you like to follow me there for updates on my work. I otherwise hardly use it, though.
 
 If not indicated otherwise, feel free to share and use the content on my website under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>. If you are interested in commercial use, contact me.
 
